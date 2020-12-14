@@ -7,11 +7,10 @@ https://sourceware.org/gdb/onlinedocs/gdb/Symbols.html
 https://darkdust.net/files/GDB%20Cheat%20Sheet.pdf
 https://blogs.oracle.com/linux/8-gdb-tricks-you-should-know-v2
 ```
+
 ### Getting started
 ##### Version
 `gdb version`
-
-### Attach
 ##### From command line
 `gdb my_app `
 ##### From command line with some A's
@@ -24,12 +23,11 @@ https://blogs.oracle.com/linux/8-gdb-tricks-you-should-know-v2
 `file format_zero`
 ##### Run file
 `run`
-##### Set arguments passed into program
-`set args "`perl -e 'print "%p"x3;'`"`
 
-#### Make gdb better
+### Make gdb better
 `https://gef.readthedocs.io/en/master/#setup`   # use gef>
-#### Set and Show Variable
+
+### Set and Show Variable
 ```
 set $foo = 3
 set $str = "hello world"
@@ -40,7 +38,7 @@ set env PATH=`perl -e 'print "A" x 65'`
 show environment
 show environment PATH
 ```
-#### Print
+### Print
 ```
 gef➤  print "foobar"
 $1 = "foobar"
@@ -81,42 +79,45 @@ $4 = {0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x0}
 (gdb) p $bar
 $5 = "hello"
 ```
-#### Stepping
+### Stepping
 ```
 nexti 3     /* run next 3 instructions */
 
 finish      /* continue execution of current function and then stop */
 ```
-#### Breakpoints
+### Breakpoints
+##### Help
+`help breakpoints`
+##### Break on symbol name
+`b atoi`
+##### Breakpoint list
+`info breakpoints`
+##### Delete breakpoints
+`delete breakpoints 1-8`
+##### Break on address
+`b *0x04006b3`
+##### Break on address + 24
+`b *start_level + 24`
+##### Break on mangled name
+`b _ZN8password11checkLengthEi`
+##### Break if Register ( Second Argument: RSI ) set to 6
+`break if $rsi = 0x38`
+##### break if
+`break passwordcheck if 0 == 0`
+##### Run debugger commands on Breakpoint 1
 ```
-b *start_level
-b *start_level + 24
-b atoi
-b _ZN8password11checkLengthEi
-
-// break if Register ( Second Argument: RSI ) set to 6
-break if $rsi = 0x38
-
-// break if
-break passwordcheck if 0 == 0
-
-// Run debugger commands on Breakpoint 1
 command 1
 Type commands for breakpoint(s) 1, one per line.
 End with a line saying just "end".
 >print "fluffy foobar"
 >end
-
-info breakpoints
-delete breakpoints
-delete breakpoints 1-8
 ```
-#### Disassemble
+### Disassemble
 ```
 (gdb) disassemble main
 (gdb) disas start_level
 ```
-#### eXamine
+### eXamine
 ```
 x/24wx $esp
 
@@ -132,7 +133,7 @@ where
    #0  0x0001058c in start_level ()
    #1  0x41414140 in ?? ()
 ````
-#### Loop
+### Loop
 ```
 set $loop = 5
 while $loop > 0
@@ -152,25 +153,28 @@ while $loop > 0
 gef> p (int)malloc(6)
 $7 = 0xb7ffd020
 ```
-#### Structs
+### Structs
 ```
 (gdb) ptype /o struct locals
 ```
-#### Buffer filling
+### Buffer filling
 Useful when trying to overfill a buffer with `gets` / `strcpy` or an `environment variable`
 ```
-// Bash
 $ python -c 'print "A"*(80) + "\x44\x05\x01\x00"' | ./stack-four
 $ cat ~/128chars | ./stack-five
-
-// inside gdb
-gef> r <<< AAAA
-gef> r < ~/payload        <- read in file ( for gets() )
-run <<< $(python -c 'print "\x41" * 44 + "\x82\x91\x04\x08"')    // scanf
-gef> r <<< $(python -c 'print "A"*80 + "\x44\x05\x01\x00"')
-(gdb) run $(python -c 'print "\x90" * 132 + "\xff\xfe\xfd\x98"')
 ```
-The above may not work with Python 3, when you hit a non-readable ASCII character. Reference [here][ba369178].
+##### Works with sprintf() or gets()
+```
+# python -c 'print "%p"*10' > payload.txt
+# gdb format_zero
+gef> r < ~/payload.txt
+```
+##### inside gdb, works with scanf()
+`gef> run <<< $(python -c 'print "\x41" * 44 + "\x82\x91\x04\x08"')`
+
+##### Troubleshooting python3 buffer filling
+```
+When you hit a non-readable ASCII character. Reference [here][ba369178].
 
   [ba369178]: https://stackoverflow.com/questions/42884251/why-is-the-output-of-print-in-python2-and-python3-different-with-the-same-string "python_2_and_3_byte_differences"
 #### Sections
