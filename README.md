@@ -1,16 +1,7 @@
 # GDB
-#### Better Cheat-Sheets
-```
-https://github.com/AnasAboureada/Penetration-Testing-Study-Notes/blob/master/cheatSheets/Cheatsheet_GDB.txt
-https://www.exploit-db.com/papers/13205
-https://sourceware.org/gdb/onlinedocs/gdb/Symbols.html
-https://darkdust.net/files/GDB%20Cheat%20Sheet.pdf
-https://blogs.oracle.com/linux/8-gdb-tricks-you-should-know-v2
-```
-
 ### Getting started
-##### Version
-`gdb version`
+##### gdb version
+`show version`
 ##### From command line
 `gdb my_app `
 ##### From command line with some A's
@@ -23,21 +14,29 @@ https://blogs.oracle.com/linux/8-gdb-tricks-you-should-know-v2
 `file format_zero`
 ##### Run file
 `run`
+##### Disassemble
+`disas start_level`
 
 ### Make gdb better
-`https://gef.readthedocs.io/en/master/#setup`   # use gef>
+##### Install gef
+`https://gef.readthedocs.io/en/master/#setup`
+### Set
+##### Integer
+`set $foo = 3`
+##### String
+`set $str = "hello world"`
+##### Instruction flavor
+`set disassembly-flavor intel`
+##### Environment variable (LD_PRELOAD)
+`set environment LD_PRELOAD=./mylib.so`
+##### Environment variable ( PATH )
+`set env PATH=``perl -e 'print "A" x 65'`
+### Show
+##### All environment variables
+`show environment`
+##### All one env variable
+`show environment PATH`
 
-### Set and Show Variable
-```
-set $foo = 3
-set $str = "hello world"
-set disassembly-flavor intel
-set environment LD_PRELOAD=./mylib.so
-set env PATH=`perl -e 'print "A" x 65'`
-
-show environment
-show environment PATH
-```
 ### Print
 ```
 gef➤  print "foobar"
@@ -79,12 +78,27 @@ $4 = {0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x0}
 (gdb) p $bar
 $5 = "hello"
 ```
-### Stepping
+### eXamine
+##### Print stack
+`x/24wx $esp`
+##### Print data at memory address as Int
+`gef➤  x/d 0x7ffe76d25c50`
+##### Print data at memory address as Hex
+`gef➤  x/x 0x7ffe76d25c50`
+##### Current instruction
+`x/i $pc`
+##### Current next two instructions
+`x/2i $pc`
+##### Current 6 instructions from last instruction ( 113 - 108 = 5)
 ```
-nexti 3     /* run next 3 instructions */
-
-finish      /* continue execution of current function and then stop */
-```
+gef➤  x/6i $pc-5
+   0x4006b3 <main+108>:	call   0x400540 <sprintf@plt>
+=> 0x4006b8 <main+113>:	mov    eax,DWORD PTR [rbp-0x10]
+   0x4006bb <main+116>:	test   eax,eax
+   0x4006bd <main+118>:	je     0x4006cd <main+134>
+   0x4006bf <main+120>:	lea    rdi,[rip+0x102]        # 0x4007c8
+   0x4006c6 <main+127>:	call   0x400510 <puts@plt>
+```   
 ### Breakpoints
 ##### Help
 `help breakpoints`
@@ -92,12 +106,18 @@ finish      /* continue execution of current function and then stop */
 `b atoi`
 ##### Breakpoint list
 `info breakpoints`
+##### Delete breakpoint 2
+`del br 2`
 ##### Delete breakpoints
 `delete breakpoints 1-8`
+##### Delete ALL breakpoints
+`d br`
 ##### Break on address
 `b *0x04006b3`
-##### Break on address + 24
+##### Break on start of function + 24
 `b *start_level + 24`
+##### Disassemble. Then break after interesting call
+`br *main + 113`
 ##### Break on mangled name
 `b _ZN8password11checkLengthEi`
 ##### Break if Register ( Second Argument: RSI ) set to 6
@@ -112,27 +132,13 @@ End with a line saying just "end".
 >print "fluffy foobar"
 >end
 ```
-### Disassemble
+### Stepping
 ```
-(gdb) disassemble main
-(gdb) disas start_level
+nexti 3     /* run next 3 instructions */
+
+finish      /* continue execution of current function and then stop */
 ```
-### eXamine
-```
-x/24wx $esp
 
-//  Instruction
-x/i $pc
-=> 0x105fc <main+32>:	bl	0x10454 <getenv@plt>
-
-x/2i $pc
-=> 0x105fc <main+32>:	bl	0x10454 <getenv@plt>
-   0x10600 <main+36>:	str	r0, [r11, #-8]
-
-where            
-   #0  0x0001058c in start_level ()
-   #1  0x41414140 in ?? ()
-````
 ### Loop
 ```
 set $loop = 5
@@ -173,21 +179,12 @@ gef> r < ~/payload.txt
 `gef> run <<< $(python -c 'print "\x41" * 44 + "\x82\x91\x04\x08"')`
 
 ##### Troubleshooting python3 buffer filling
-```
 When you hit a non-readable ASCII character. Reference [here][ba369178].
 
   [ba369178]: https://stackoverflow.com/questions/42884251/why-is-the-output-of-print-in-python2-and-python3-different-with-the-same-string "python_2_and_3_byte_differences"
+
 #### Sections
-```
-Display executable sections
-(gdb) main info sec
-Exec file:
-    `/root/vuln', file type elf32-i386.
-    0x080480f4->0x08048107 at 0x000000f4: .interp ALLOC LOAD READONLY DATA HAS_CONTENTS
-    0x08048108->0x08048128 at 0x00000108: .note.ABI-tag ALLOC LOAD READONLY DATA HAS_CONTENTS
-    0x08048128->0x080482c4 at 0x00000128: .hash ALLOC LOAD READONLY DATA HAS_CONTENTS
-    0x080482c4->0x080486c4 at 0x000002c4: .dynsym ALLOC LOAD READONLY DATA HAS_CONTENTS
-```
+`main info sec`
 #### whatis
 ```
 gef> whatis 0x000106d8
@@ -310,6 +307,8 @@ $ <shell command>
 $ exit
 ```
 ## Cool commands
+##### what is the current instruction
+`where`
 ##### disable ASLR
 `gef➤  set disable-aslr`
 ##### Follow process forking
@@ -326,4 +325,12 @@ Create an Entitlements file
 Create a Signing Certificate in KeyChain
 
 codesign --entitlements gdb.xml -fs gdbcert /usr/local/bin/gdb
+```
+#### References
+```
+https://github.com/AnasAboureada/Penetration-Testing-Study-Notes/blob/master/cheatSheets/Cheatsheet_GDB.txt
+https://www.exploit-db.com/papers/13205
+https://sourceware.org/gdb/onlinedocs/gdb/Symbols.html
+https://darkdust.net/files/GDB%20Cheat%20Sheet.pdf
+https://blogs.oracle.com/linux/8-gdb-tricks-you-should-know-v2
 ```
