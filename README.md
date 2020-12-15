@@ -1,4 +1,5 @@
 # GDB
+
 ### Getting started
 ##### gdb version
 `show version`
@@ -31,7 +32,11 @@
 `set environment LD_PRELOAD=./mylib.so`
 ##### Environment variable ( PATH )
 `set env PATH=``perl -e 'print "A" x 65'`
+##### Set environment variable
+`python gdb.execute("set environment payload=%x%x%x%x")`
 ### Show
+##### Show env payload
+`show env payload`
 ##### All environment variables
 `show environment`
 ##### All one env variable
@@ -81,6 +86,10 @@ $5 = "hello"
 ### eXamine
 ##### Print stack
 `x/24wx $esp`
+##### Print bytes (wide format) at 9 addresses starting at 0x6c00
+`x/9wx 0x6c00`
+##### Print individual bytes bytes starting at 0x6c00
+`x/32x 0x7ffd57136c00`
 ##### Print data at memory address as Int
 `gef➤  x/d 0x7ffe76d25c50`
 ##### Print data at memory address as Hex
@@ -132,6 +141,15 @@ End with a line saying just "end".
 >print "fluffy foobar"
 >end
 ```
+
+### Watchpoints
+##### Watch memory of stack variables ( no debug symbols )
+`memory watch 0x7ffca5211480+0x28 8 qword`
+##### Hardware watchpoint - with debug symbols - char buffer
+`watch *(char(*)[32])(locals.dest)`
+##### Hardware watchpoint - with debug symbols - int
+`watch *(int)(locals.changeme)`
+
 ### Stepping
 ```
 nexti 3     /* run next 3 instructions */
@@ -298,15 +316,27 @@ Pathname: [stack]
 Offset (from page): 0x0
 Inode: 0
 ```
-#### Shell
-```
-gef> shell ls
 
-gef> shell
-$ <shell command>
-$ exit
-```
-## Cool commands
+### Shell
+##### Get a shell
+`gdb) shell`
+##### List files in present working directory
+`gdb) shell ls`
+##### Cat a file
+`gdb) shell cat payload.txt`
+##### Playing
+`gdb) shell echo "hello there" | sed "s/hello/hi/" | sed "s/there/robots/"`
+##### Drop into shell
+`gef> shell`
+##### Back to gdb
+$ exit`
+##### What type of shell
+`# find -L /bin -samefile /bin/sh`
+##### Bash is not the default shell for Ubuntu
+https://stackoverflow.com/questions/2462317/bash-syntax-error-redirection-unexpected
+
+
+### Cool commands
 ##### what is the current instruction
 `where`
 ##### disable ASLR
