@@ -17,7 +17,10 @@
 `run`
 ##### Disassemble
 `disas start_level`
-
+##### Disassemble main from command line, with gdb
+`gdb -batch -ex 'file format_one' -ex 'disassemble main'`
+##### Disassemble and look for compare instructions
+`gdb -batch -ex 'file format_one' -ex 'disassemble main' | grep -i cmp`
 ### Make gdb better
 ##### Install gef
 `https://gef.readthedocs.io/en/master/#setup`
@@ -86,21 +89,23 @@ $5 = "hello"
 ### eXamine
 ##### Print stack
 `x/24wx $esp`
-##### Print bytes (wide format) at 9 addresses starting at 0x6c00
+##### Print bytes 4 bytes x 9 addresses starting at 0x6c00
 `x/9wx 0x6c00`
-##### Print individual bytes bytes starting at 0x6c00
-`x/32x 0x7ffd57136c00`
+##### Print 256 individual bytes from address 350
+`x/256bx 0x350`
+##### Print 4-bytes 32 times from address 0x6c00
+`x/32wx 0x6c00`
 ##### Print data at memory address as Int
-`gef➤  x/d 0x7ffe76d25c50`
+`x/d 0x7ffe76d25c50`
 ##### Print data at memory address as Hex
-`gef➤  x/x 0x7ffe76d25c50`
+`x/x 0x7ffe76d25c50`
 ##### Current instruction
 `x/i $pc`
 ##### Current next two instructions
 `x/2i $pc`
 ##### Current 6 instructions from last instruction ( 113 - 108 = 5)
 ```
-gef➤  x/6i $pc-5
+x/6i $pc-5
    0x4006b3 <main+108>:	call   0x400540 <sprintf@plt>
 => 0x4006b8 <main+113>:	mov    eax,DWORD PTR [rbp-0x10]
    0x4006bb <main+116>:	test   eax,eax
@@ -115,6 +120,10 @@ gef➤  x/6i $pc-5
 `b atoi`
 ##### Breakpoint list
 `info breakpoints`
+##### Disable all
+`disable breakpoints`
+##### Delete breakpoint at current instruction
+`clear`
 ##### Delete breakpoint 2
 `del br 2`
 ##### Delete breakpoints
@@ -191,11 +200,19 @@ $ cat ~/128chars | ./stack-five
 ```
 # python -c 'print "%p"*10' > payload.txt
 # gdb format_zero
-gef> r < ~/payload.txt
-```
-##### inside gdb, works with scanf()
-`gef> run <<< $(python -c 'print "\x41" * 44 + "\x82\x91\x04\x08"')`
 
+r < ~/payload.txt
+```
+##### inside gdb.  Passing in arguments values ( for `scanf`, `strcpy` etc )
+```
+r payload.txt
+
+run $(python -c 'print "A" * 20')
+
+run $(python -c 'print "%268x" + "\x41\x41\x41\x41"')
+
+run $(echo -e "\x54\x10\x60\x00%x%x%x%x%x%x%x%x%x%x%x%n.")
+```
 ##### Troubleshooting python3 buffer filling
 When you hit a non-readable ASCII character. Reference [here][ba369178].
 
@@ -339,6 +356,8 @@ https://stackoverflow.com/questions/2462317/bash-syntax-error-redirection-unexpe
 ### Cool commands
 ##### what is the current instruction
 `where`
+##### disable ASLR in host machine
+`sysctl -w kernel.randomize_va_space=0`   // whoami=root
 ##### disable ASLR
 `gef➤  set disable-aslr`
 ##### Follow process forking
