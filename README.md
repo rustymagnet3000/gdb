@@ -1,4 +1,29 @@
 # GDB
+
+<!-- TOC depthFrom:3 depthTo:3 withLinks:1 updateOnSave:1 orderedList:0 -->
+
+- [Getting started](#getting-started)
+- [Set](#set)
+- [Show](#show)
+- [Print](#print)
+- [eXamine](#examine)
+- [Breakpoints](#breakpoints)
+- [Watchpoints](#watchpoints)
+- [Stepping](#stepping)
+- [Loop](#loop)
+- [Structs](#structs)
+- [Buffers](#buffers)
+- [Buffer filling](#buffer-filling)
+- [Understanding where you are](#understanding-where-you-are)
+- [Registers](#registers)
+- [Stack](#stack)
+- [Memory](#memory)
+- [Rat Holes](#rat-holes)
+- [Shell](#shell)
+- [Cool commands](#cool-commands)
+
+<!-- /TOC -->
+
 ### Getting started
 ##### Install the gef extension
 `https://gef.readthedocs.io/en/master/#setup`
